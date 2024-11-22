@@ -1,0 +1,14 @@
+Table users {
+  id integer
+  username varchar
+  role varchar
+  created_at timestamp
+}
+
+Table posts {
+  id integer
+  title varchar
+  body text
+  user_id integer
+  created_at timestamp
+}
