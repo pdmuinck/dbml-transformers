@@ -31,6 +31,7 @@ IDENTIFIER=30
 NUMBER=31
 WS=32
 COMMENT=33
+OPERATOR=34
 'Table'=1
 'Ref'=2
 'Enum'=3
@@ -56,3 +57,4 @@ COMMENT=33
 ';'=24
 '.'=25
 '='=26
+'`'=28

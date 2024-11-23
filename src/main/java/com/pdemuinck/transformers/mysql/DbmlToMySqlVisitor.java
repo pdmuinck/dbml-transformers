@@ -5,6 +5,7 @@ import com.pdemuinck.transformers.antlr.DbmlParserBaseVisitor;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -15,20 +16,33 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
     @Override
     public String visitDbml(DbmlParser.DbmlContext ctx) {
         ctx.table().forEach(table -> table.accept(this));
-        return String.join("\n", statements) + "\n";
+        return statements.stream().map(s -> s + ";").collect(Collectors.joining("\n")) + "\n";
     }
 
     @Override
     public String visitTable(DbmlParser.TableContext ctx) {
         String schemaTableName = ctx.schema_table_name().accept(this);
-        statements.add(String.format("CREATE TABLE IF NOT EXISTS %s (%s);", schemaTableName,
-                ctx.column().stream().map(c -> c.accept(this)).collect(Collectors.joining(", "))));
+        String primaryKey = "";
+        List<String> createIndexStatements = new ArrayList<>();
+        if (ctx.table_index() != null && !ctx.table_index().isEmpty()) {
+            DbmlParser.Table_indexContext tableIndexContext = ctx.table_index().get(0);
+            String[] indexes = tableIndexContext.accept(this).split("\n");
+            int currentIdx = 0;
+            for (String index : indexes) {
+                if (index.contains("PRIMARY KEY")) {
+                    primaryKey = index;
+                    continue;
+                }
+                createIndexStatements.add(index.replaceAll("<tableName>", schemaTableName).replaceAll("<indexName>", String.format("`%s_index_%d`", schemaTableName.replaceAll("`", ""), currentIdx)));
+                currentIdx++;
+            }
+        }
+        statements.add(String.format("CREATE TABLE IF NOT EXISTS %s (%s)", schemaTableName,
+                ctx.column().stream().map(c -> c.accept(this)).collect(Collectors.joining(", ")) + (primaryKey.isEmpty() ? "" : ", " + primaryKey)));
         if (ctx.note() != null) {
-            ctx.note().forEach(note -> statements.add(String.format("ALTER TABLE %s %s;", schemaTableName, note.accept(this))));
+            ctx.note().forEach(note -> statements.add(String.format("ALTER TABLE %s %s", schemaTableName, note.accept(this))));
         }
-        if (ctx.table_index() != null) {
-            ctx.table_index().stream().map(index -> index.accept(this).replaceAll("<tableName>", schemaTableName)).forEach(statements::add);
-        }
+        createIndexStatements.forEach(statements::add);
         return null;
     }
 
@@ -52,7 +66,7 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
         StringBuilder sb = new StringBuilder();
         sb.append("(");
         sb.append(ctx.table_setting_list().accept(this));
-        sb.append(");");
+        sb.append(")");
         return sb.toString();
     }
 
@@ -130,17 +144,17 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
                 return "DEFAULT " + ctx.NUMBER().getText();
             } else if (ctx.IDENTIFIER() != null) {
                 return "DEFAULT " + ctx.children.get(2).getText().replaceFirst("`", "(").replace("`", ")");
-            } else {
+            } else if (ctx.inline_expression() != null){
                 return "";
             }
         } else {
             return "";
         }
+        return "";
     }
 
     @Override
     public String visitTable_index(DbmlParser.Table_indexContext ctx) {
-        String table = ctx.parent.getText();
         return ctx.index_entry().stream().map(index_entry -> index_entry.accept(this)).collect(Collectors.joining("\n"));
     }
 
@@ -150,20 +164,20 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
             return ctx.composite_index().accept(this);
         } else if (ctx.single_column_index() != null) {
             return ctx.single_column_index().accept(this);
-        } else if (ctx.inline_expression_list() != null) {
-            return ctx.inline_expression_list().accept(this);
+        } else {
+            return ctx.getText();
         }
-        return "";
     }
 
     @Override
     public String visitComposite_index(DbmlParser.Composite_indexContext ctx) {
+        String indexColumns = ctx.index_columns().accept(this);
         if (ctx.index_settings() != null) {
             String createIndexDdl = ctx.index_settings().accept(this);
-            String indexColumns = ctx.index_columns().accept(this);
             return createIndexDdl.replaceAll("<columnList>", indexColumns);
+        } else {
+            return String.format("CREATE INDEX <indexName> ON <tableName> (%s)", indexColumns);
         }
-        return "";
     }
 
     @Override
@@ -171,8 +185,9 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
         if (ctx.index_settings() != null) {
             String createIndexDdl = ctx.index_settings().accept(this);
             return createIndexDdl.replaceAll("<columnList>", "`" + ctx.IDENTIFIER().getText() + "`");
+        } else {
+            return String.format("CREATE INDEX <indexName> ON <tableName> (`%s`)", ctx.IDENTIFIER().getText());
         }
-        return "";
     }
 
     @Override
@@ -187,21 +202,47 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
 
     @Override
     public String visitIndex_setting(DbmlParser.Index_settingContext ctx) {
-        if(ctx.PK() != null){
-            return "ALTER TABLE <tableName> ADD PRIMARY KEY (<columnList>);";
+        if (ctx.PK() != null) {
+            return "PRIMARY KEY (<columnList>)";
         } else if (ctx.NAME() != null) {
-            return String.format("CREATE INDEX %s on <tableName> (<columnList>);", ctx.STRING_LITERAL().getText().replaceAll("'", "`"));
+            return String.format("CREATE INDEX %s ON <tableName> (<columnList>)", ctx.STRING_LITERAL().getText().replaceAll("'", "`"));
         } else if (ctx.UNIQUE() != null) {
-            return "CREATE UNIQUE INDEX <indexName> <tableName> (<columnList>);";
-        } else if(ctx.getText().contains("type")){
-            return String.format("CREATE INDEX <indexName> on <tableName> (<columnList>) USING %s;", ctx.getText().split(":")[1].toUpperCase());
+            return "CREATE UNIQUE INDEX <indexName> ON <tableName> (<columnList>)";
+        } else if (ctx.getText().contains("type")) {
+            return String.format("CREATE INDEX <indexName> ON <tableName> (<columnList>) USING %s", ctx.getText().split(":")[1].toUpperCase());
+        } else {
+            return "";
         }
-        return "";
     }
 
     @Override
     public String visitIndex_columns(DbmlParser.Index_columnsContext ctx) {
+        if(ctx.inline_expression_list() != null){
+            return ctx.inline_expression_list().accept(this);
+        } else if(ctx.column_expression_list() != null){
+            return ctx.column_expression_list().accept(this);
+        } else {
+            return ctx.getText();
+        }
+    }
+
+    @Override
+    public String visitColumn_expression_list(DbmlParser.Column_expression_listContext ctx) {
         return ctx.IDENTIFIER().stream().map(TerminalNode::getText).map(c -> "`" + c + "`").collect(Collectors.joining(", "));
+    }
+
+    @Override
+    public String visitInline_expression_list(DbmlParser.Inline_expression_listContext ctx) {
+        return ctx.inline_expression().stream().map(inline_expression -> inline_expression.accept(this)).collect(Collectors.joining(", "));
+    }
+
+    @Override
+    public String visitInline_expression(DbmlParser.Inline_expressionContext ctx) {
+        if(ctx.children.stream().map(c -> c.getText()).noneMatch(c -> c.equals("`"))){
+            return "`" + ctx.getText() + "`";
+        }
+        String[] split = ctx.getText().split(",");
+        return Arrays.stream(split).map(String::trim).map(c -> "(" + c.replaceAll("`", "") + ")").collect(Collectors.joining(", "));
     }
 }
 

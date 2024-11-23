@@ -230,6 +230,26 @@ public interface DbmlParserListener extends ParseTreeListener {
 	 */
 	void exitInline_expression(DbmlParser.Inline_expressionContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DbmlParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterExpression(DbmlParser.ExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DbmlParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitExpression(DbmlParser.ExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DbmlParser#function_call}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunction_call(DbmlParser.Function_callContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DbmlParser#function_call}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunction_call(DbmlParser.Function_callContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DbmlParser#index_setting_list}.
 	 * @param ctx the parse tree
 	 */

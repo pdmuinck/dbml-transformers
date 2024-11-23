@@ -145,6 +145,18 @@ public interface DbmlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitInline_expression(DbmlParser.Inline_expressionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DbmlParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExpression(DbmlParser.ExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DbmlParser#function_call}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunction_call(DbmlParser.Function_callContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DbmlParser#index_setting_list}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -31,7 +31,7 @@ SEMICOLON     : ';';
 DOT           : '.';
 ASSIGN        : '=';
 RELATION_OP   : '>' | '<' | '-' | '<>';
-BACKTICK      : '`' (~[`\\] | '\\' .)* '`';
+BACKTICK      : '`';
 STRING_LITERAL: '\'' (~['\\] | '\\' .)* '\'';
 MULTI_LINE_STRING
               : '"""' .*? '"""' -> more, channel(HIDDEN);
@@ -39,3 +39,7 @@ IDENTIFIER    : [a-zA-Z_][a-zA-Z0-9_]*;
 NUMBER        : [0-9]+;
 WS            : [ \t\r\n]+ -> skip;
 COMMENT       : '//' ~[\r\n]* -> skip;
+
+OPERATOR
+    : '*' | '/' | '+' | '-'             // Arithmetic operators
+    ;

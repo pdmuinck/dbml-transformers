@@ -29,6 +29,7 @@ class DbmlToMySqlVisitorTest extends BaseDbmlTest {
                 Arguments.of("dbml/table_settings.dbml", "mysql/table_settings.sql"),
                 Arguments.of("dbml/column_defaults.dbml", "mysql/column_defaults.sql"),
                 Arguments.of("dbml/index_definition.dbml", "mysql/index_definition.sql"),
+                Arguments.of("dbml/relations.dbml", "mysql/relations.sql"),
                 Arguments.of("dbml/column_settings.dbml", "mysql/column_settings.sql")
         );
     }

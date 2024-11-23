@@ -38,21 +38,20 @@ column_settings
 column_setting_list
               : column_setting (COMMA column_setting)*;
 column_setting
-              : IDENTIFIER COLON (STRING_LITERAL | NUMBER | BACKTICK | IDENTIFIER)
+              : IDENTIFIER COLON (inline_expression | STRING_LITERAL | NUMBER | IDENTIFIER)
               | IDENTIFIER
               | PRIMARY_KEY
               | PK
               | UNIQUE
               | NOT_NULL
               | note
-              | DEFAULT COLON (STRING_LITERAL | NUMBER | IDENTIFIER);
+              | DEFAULT COLON (inline_expression | STRING_LITERAL | NUMBER | IDENTIFIER);
 
 table_index   : INDEXES LBRACE index_entry+ RBRACE;
 
 index_entry
     : composite_index
     | single_column_index
-    | inline_expression_list
     ;
 
 composite_index
@@ -60,7 +59,8 @@ composite_index
     ;
 
 index_columns
-    : IDENTIFIER (COMMA IDENTIFIER)*                // Comma-separated column names
+    : column_expression_list // List of identifiers or numbers
+    | inline_expression_list // List of backtick-enclosed expressions
     ;
 
 single_column_index
@@ -71,14 +71,25 @@ index_settings
     : LBRACKET index_setting_list RBRACKET                          // e.g., [pk], [name: 'index_name']
     ;
 
-// Define inline expressions as index entries
 inline_expression_list
-    : LPAREN inline_expression (COMMA inline_expression)* RPAREN  // Inline expressions, comma-separated
+    : inline_expression (COMMA inline_expression)*
     ;
 
 // Inline expressions, such as calculations or functions
 inline_expression
-    : BACKTICK .*? BACKTICK                                   // Backtick-enclosed expressions
+    : BACKTICK expression BACKTICK                                   // Backtick-enclosed expressions
+    | IDENTIFIER
+    ;
+
+
+// Support valid mathematical or function-like expressions
+expression
+    : (IDENTIFIER | function_call) (OPERATOR (IDENTIFIER | NUMBER))*  // Support for operators like `id*2`
+    ;
+
+// Functions like `getdate()`
+function_call
+    : IDENTIFIER LPAREN (IDENTIFIER (COMMA IDENTIFIER)*)? RPAREN
     ;
 
 // Setting list within brackets
