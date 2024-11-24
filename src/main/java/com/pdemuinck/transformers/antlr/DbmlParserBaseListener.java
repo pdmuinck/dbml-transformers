@@ -378,6 +378,30 @@ public class DbmlParserBaseListener implements DbmlParserListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterReference_long_form(DbmlParser.Reference_long_formContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitReference_long_form(DbmlParser.Reference_long_formContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterReference_short_form(DbmlParser.Reference_short_formContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitReference_short_form(DbmlParser.Reference_short_formContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterRelation_settings(DbmlParser.Relation_settingsContext ctx) { }
 	/**
 	 * {@inheritDoc}

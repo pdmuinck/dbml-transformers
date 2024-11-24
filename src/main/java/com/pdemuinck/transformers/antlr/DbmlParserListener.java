@@ -310,6 +310,26 @@ public interface DbmlParserListener extends ParseTreeListener {
 	 */
 	void exitReference(DbmlParser.ReferenceContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link DbmlParser#reference_long_form}.
+	 * @param ctx the parse tree
+	 */
+	void enterReference_long_form(DbmlParser.Reference_long_formContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DbmlParser#reference_long_form}.
+	 * @param ctx the parse tree
+	 */
+	void exitReference_long_form(DbmlParser.Reference_long_formContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link DbmlParser#reference_short_form}.
+	 * @param ctx the parse tree
+	 */
+	void enterReference_short_form(DbmlParser.Reference_short_formContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link DbmlParser#reference_short_form}.
+	 * @param ctx the parse tree
+	 */
+	void exitReference_short_form(DbmlParser.Reference_short_formContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link DbmlParser#relation_settings}.
 	 * @param ctx the parse tree
 	 */

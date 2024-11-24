@@ -34,9 +34,10 @@ column        : IDENTIFIER type column_settings? (COMMA | SEMICOLON)?;
 type          : IDENTIFIER (LPAREN NUMBER RPAREN)?;
 
 column_settings
-              : LBRACKET column_setting_list RBRACKET;
+              : LBRACKET column_setting_list RBRACKET
+              ;
 column_setting_list
-              : column_setting (COMMA column_setting)*;
+              : (column_setting | reference) (COMMA column_setting | reference)*;
 column_setting
               : IDENTIFIER COLON (inline_expression | STRING_LITERAL | NUMBER | IDENTIFIER)
               | IDENTIFIER
@@ -117,8 +118,21 @@ note          : NOTE COLON STRING_LITERAL
 relation      : IDENTIFIER RELATION_OP IDENTIFIER
                   (column_settings)?;
 
-reference     : REF (IDENTIFIER COLON)? schema_table_name DOT IDENTIFIER RELATION_OP schema_table_name DOT IDENTIFIER
-                  relation_settings?;
+reference
+              : reference_short_form
+              | REF COLON RELATION_OP (IDENTIFIER DOT)? IDENTIFIER DOT IDENTIFIER
+              | reference_long_form
+              ;
+
+reference_long_form:
+                REF IDENTIFIER LBRACE
+                  IDENTIFIER DOT IDENTIFIER RELATION_OP IDENTIFIER DOT IDENTIFIER
+                RBRACE;
+
+reference_short_form
+              : REF IDENTIFIER COLON IDENTIFIER DOT IDENTIFIER RELATION_OP IDENTIFIER DOT IDENTIFIER
+              ;
+
 relation_settings
               : LBRACKET relation_setting_list RBRACKET;
 relation_setting_list

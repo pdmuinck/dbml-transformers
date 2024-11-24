@@ -35,7 +35,6 @@ OPERATOR=34
 HEX_COLOR=35
 MULTI_LINE_STRING=36
 'Table'=1
-'Ref'=2
 'Enum'=3
 'indexes'=4
 'Project'=5

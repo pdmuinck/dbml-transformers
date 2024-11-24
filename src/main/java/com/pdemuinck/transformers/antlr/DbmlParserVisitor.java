@@ -193,6 +193,18 @@ public interface DbmlParserVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitReference(DbmlParser.ReferenceContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link DbmlParser#reference_long_form}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitReference_long_form(DbmlParser.Reference_long_formContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link DbmlParser#reference_short_form}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitReference_short_form(DbmlParser.Reference_short_formContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link DbmlParser#relation_settings}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -33,7 +33,6 @@ WS=32
 COMMENT=33
 OPERATOR=34
 'Table'=1
-'Ref'=2
 'Enum'=3
 'indexes'=4
 'Project'=5

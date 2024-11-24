@@ -5,7 +5,7 @@ package com.pdemuinck.transformers.antlr;
 }
 
 TABLE         : 'Table';
-REF           : 'Ref';
+REF           : [Rr][e][f];
 ENUM          : 'Enum';
 INDEXES       : 'indexes';
 PROJECT       : 'Project';
