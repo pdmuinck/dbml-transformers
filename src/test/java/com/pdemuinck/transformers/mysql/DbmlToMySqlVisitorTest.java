@@ -33,6 +33,7 @@ class DbmlToMySqlVisitorTest extends BaseDbmlTest {
                 Arguments.of("dbml/relation_long_form.dbml", "mysql/relation_long_form.sql"),
                 Arguments.of("dbml/relation_short_form.dbml", "mysql/relation_short_form.sql"),
                 Arguments.of("dbml/cross_schema_relation.dbml", "mysql/cross_schema_relation.sql"),
+                Arguments.of("dbml/enum.dbml", "mysql/enum.sql"),
                 Arguments.of("dbml/column_settings.dbml", "mysql/column_settings.sql")
         );
     }

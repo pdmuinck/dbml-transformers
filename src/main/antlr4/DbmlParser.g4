@@ -30,7 +30,9 @@ table_setting_list
 table_setting : IDENTIFIER COLON (STRING_LITERAL | HEX_COLOR | IDENTIFIER)
               | IDENTIFIER;
 
-column        : IDENTIFIER type column_settings? (COMMA | SEMICOLON)?;
+column        : IDENTIFIER type column_settings? (COMMA | SEMICOLON)?
+              | IDENTIFIER IDENTIFIER
+              ;
 type          : IDENTIFIER (LPAREN NUMBER RPAREN)?;
 
 column_settings
@@ -141,7 +143,7 @@ relation_setting
               : DELETE COLON IDENTIFIER
               | UPDATE COLON IDENTIFIER;
 
-enumeration   : ENUM schema_table_name LBRACE enum_entry* RBRACE;
+enumeration   : ENUM IDENTIFIER LBRACE enum_entry* RBRACE;
 enum_entry    : IDENTIFIER (LBRACKET column_setting_list RBRACKET)?;
 
 column_list   : IDENTIFIER (COMMA IDENTIFIER)*;

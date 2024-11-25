@@ -6,7 +6,7 @@ package com.pdemuinck.transformers.antlr;
 
 TABLE         : 'Table';
 REF           : [Rr][e][f];
-ENUM          : 'Enum';
+ENUM          : [Ee][n][u][m];
 INDEXES       : 'indexes';
 PROJECT       : 'Project';
 NOTE          : 'Note' | 'note';

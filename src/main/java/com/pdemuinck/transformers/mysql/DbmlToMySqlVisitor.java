@@ -4,9 +4,7 @@ import com.pdemuinck.transformers.antlr.DbmlParser;
 import com.pdemuinck.transformers.antlr.DbmlParserBaseVisitor;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
@@ -14,9 +12,13 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
     private List<String> statements = new ArrayList<>();
     private List<String> refStatements = new ArrayList<>();
     private List<String> schemaStatements = new ArrayList<>();
+    private Map<String, List<String>> enums = new HashMap<>();
 
     @Override
     public String visitDbml(DbmlParser.DbmlContext ctx) {
+        if(ctx.enumeration() != null && !ctx.enumeration().isEmpty()) {
+            ctx.enumeration().forEach(e -> e.accept(this));
+        }
         if (ctx.reference() != null){
             ctx.reference().forEach(reference -> refStatements.add(reference.accept(this)));
         }
@@ -97,16 +99,20 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
 
     @Override
     public String visitColumn(DbmlParser.ColumnContext ctx) {
+        String type = ctx.type().getText();
+        if(enums.containsKey(ctx.type().getText())){
+            return String.format("`%s` ENUM (%s)", ctx.IDENTIFIER(0).getText(), enums.get(ctx.type().getText()).stream().map(e -> "'" + e + "'").collect(Collectors.joining(", ")));
+        }
         if (ctx.column_settings() != null) {
             String settings = ctx.column_settings().accept(this);
-            refStatements = refStatements.stream().map(r -> r.replaceAll("<column_name", ctx.IDENTIFIER().getText())).collect(Collectors.toCollection(ArrayList::new));
+            refStatements = refStatements.stream().map(r -> r.replaceAll("<column_name", ctx.IDENTIFIER().get(0).getText())).collect(Collectors.toCollection(ArrayList::new));
             if(settings.isEmpty()){
-                return String.format("`%s` %s", ctx.IDENTIFIER().getText(), ctx.type().accept(this));
+                return String.format("`%s` %s", ctx.IDENTIFIER().get(0).getText(), ctx.type().accept(this));
             } else {
-                return String.format("`%s` %s %s", ctx.IDENTIFIER().getText(), ctx.type().accept(this), settings);
+                return String.format("`%s` %s %s", ctx.IDENTIFIER().get(0).getText(), ctx.type().accept(this), settings);
             }
         } else {
-            return String.format("`%s` %s", ctx.IDENTIFIER().getText(), ctx.type().accept(this));
+            return String.format("`%s` %s", ctx.IDENTIFIER().get(0).getText(), ctx.type().accept(this));
         }
     }
 
@@ -318,6 +324,19 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
                     ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
         }
         return relation;
+    }
+
+    @Override
+    public String visitEnumeration(DbmlParser.EnumerationContext ctx) {
+        List<String> values = new ArrayList<>();
+        ctx.enum_entry().forEach(e -> values.add(e.accept(this)));
+        enums.put(ctx.IDENTIFIER().getText(), values);
+        return null;
+    }
+
+    @Override
+    public String visitEnum_entry(DbmlParser.Enum_entryContext ctx) {
+        return ctx.IDENTIFIER().getText();
     }
 }
 
