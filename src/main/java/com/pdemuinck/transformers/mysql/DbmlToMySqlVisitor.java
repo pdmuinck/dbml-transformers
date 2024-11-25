@@ -10,22 +10,23 @@ import java.util.stream.Collectors;
 public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
 
     private List<String> statements = new ArrayList<>();
+    private List<String> schemas = new ArrayList<>();
     private List<String> refStatements = new ArrayList<>();
     private List<String> schemaStatements = new ArrayList<>();
     private Map<String, List<String>> enums = new HashMap<>();
 
     @Override
     public String visitDbml(DbmlParser.DbmlContext ctx) {
-        if(ctx.enumeration() != null && !ctx.enumeration().isEmpty()) {
+        if (ctx.enumeration() != null && !ctx.enumeration().isEmpty()) {
             ctx.enumeration().forEach(e -> e.accept(this));
         }
-        if (ctx.reference() != null){
+        if (ctx.reference() != null) {
             ctx.reference().forEach(reference -> refStatements.add(reference.accept(this)));
         }
         ctx.table().forEach(table -> table.accept(this));
         statements.addAll(refStatements);
-        schemaStatements.addAll(statements);
-        return schemaStatements.stream().map(s -> s + ";").collect(Collectors.joining("\n")) + "\n";
+        schemas.addAll(statements);
+        return schemas.stream().map(s -> s + ";").collect(Collectors.joining("\n")) + "\n";
     }
 
     @Override
@@ -60,7 +61,7 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
     @Override
     public String visitSchema_table_name(DbmlParser.Schema_table_nameContext ctx) {
         if (ctx.schema() != null) {
-            schemaStatements.add(String.format("CREATE SCHEMA `%s`", ctx.schema().IDENTIFIER().getText()));
+            schemas.add(String.format("CREATE SCHEMA `%s`", ctx.schema().IDENTIFIER().getText()));
             return String.format("`%s`.`%s`", ctx.schema().IDENTIFIER().getText(), ctx.IDENTIFIER().getText());
         } else {
             return String.format("`%s`", ctx.IDENTIFIER().getText());
@@ -100,13 +101,13 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
     @Override
     public String visitColumn(DbmlParser.ColumnContext ctx) {
         String type = ctx.type().getText();
-        if(enums.containsKey(ctx.type().getText())){
+        if (enums.containsKey(ctx.type().getText())) {
             return String.format("`%s` ENUM (%s)", ctx.IDENTIFIER(0).getText(), enums.get(ctx.type().getText()).stream().map(e -> "'" + e + "'").collect(Collectors.joining(", ")));
         }
         if (ctx.column_settings() != null) {
             String settings = ctx.column_settings().accept(this);
             refStatements = refStatements.stream().map(r -> r.replaceAll("<column_name", ctx.IDENTIFIER().get(0).getText())).collect(Collectors.toCollection(ArrayList::new));
-            if(settings.isEmpty()){
+            if (settings.isEmpty()) {
                 return String.format("`%s` %s", ctx.IDENTIFIER().get(0).getText(), ctx.type().accept(this));
             } else {
                 return String.format("`%s` %s %s", ctx.IDENTIFIER().get(0).getText(), ctx.type().accept(this), settings);
@@ -271,29 +272,32 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
 
     @Override
     public String visitReference(DbmlParser.ReferenceContext ctx) {
-        if(ctx.reference_long_form() != null){
+        if (ctx.reference_long_form() != null) {
             return ctx.reference_long_form().accept(this);
-        } else if(ctx.reference_short_form() != null){
+        } else if (ctx.reference_short_form() != null) {
             return ctx.reference_short_form().accept(this);
         } else {
             // inline
             List<TerminalNode> identifier = ctx.IDENTIFIER();
             String relation = ctx.RELATION_OP().getText();
-            if(identifier.size() == 3){
+            if (identifier.size() == 3) {
                 if (">".equals(relation)) {
                     return String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s`.`%s` (`%s`)",
                             ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
-                } else if("<".equals(relation)){
-                    return String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
+                } else if ("<".equals(relation)) {
+                    return String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s`.`%s` (`%s`)",
                             ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
                 }
             } else {
                 if (">".equals(relation)) {
                     return String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
                             ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText());
-                } else if("<".equals(relation)){
+                } else if ("<".equals(relation)) {
+                    return String.format("ALTER TABLE `%s` ADD FOREIGN KEY (`%s`) REFERENCES <tableName> (`<column_name`)",
+                            ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText());
+                } else if ("-".equals(relation)) {
                     return String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
-                            ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(0).getText());
+                            ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText());
                 }
             }
             return relation;
@@ -304,9 +308,13 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
     public String visitReference_long_form(DbmlParser.Reference_long_formContext ctx) {
         String relation = ctx.RELATION_OP().getText();
         if (">".equals(relation)) {
-            return String.format("ALTER TABLE `%s` ADD CONSTRAINT %s FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
+            return String.format("ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`)",
+                    ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(2).getText(),
+                    ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(4).getText());
+        } else if ("<".equals(relation)) {
+            return String.format("ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
                     ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
-        } else if("<".equals(relation)){
+        } else if ("-".equals(relation)) {
             return String.format("ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
                     ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
         }
@@ -317,11 +325,21 @@ public class DbmlToMySqlVisitor extends DbmlParserBaseVisitor<String> {
     public String visitReference_short_form(DbmlParser.Reference_short_formContext ctx) {
         String relation = ctx.RELATION_OP().getText();
         if (">".equals(relation)) {
-            return String.format("ALTER TABLE `%s` ADD CONSTRAINT %s FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
-                    ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
-        } else if("<".equals(relation)){
+            List<TerminalNode> identifier = ctx.IDENTIFIER();
+            return String.format("ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`)",
+                    ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(2).getText(), ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(4).getText());
+        } else if ("<".equals(relation)) {
             return String.format("ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
                     ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
+        } else if ("-".equals(relation)) {
+            return String.format("ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
+                    ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
+        } else if("<>".equals(relation)) {
+            List<TerminalNode> identifier = ctx.IDENTIFIER();
+            statements.add(String.format("CREATE TABLE IF NOT EXISTS `%s_%s` (`%s_%s`, `%s`)", ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(3),
+                    ctx.IDENTIFIER(1), ctx.IDENTIFIER(2), ctx.IDENTIFIER(4).getText()));
+            return String.format("ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`)",
+                    ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(2).getText(), ctx.IDENTIFIER(3).getText(), ctx.IDENTIFIER(4).getText());
         }
         return relation;
     }
