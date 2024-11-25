@@ -7,6 +7,4 @@ Table users {
   id integer
 }
 
-Ref fk_name {
-  posts.user_id < users.id
-}
+Ref fk_name: posts.user_id < users.id

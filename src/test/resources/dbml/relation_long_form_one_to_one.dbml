@@ -1,0 +1,12 @@
+Table posts {
+  id integer [primary key]
+  user_id integer
+}
+
+Table users {
+  id integer
+}
+
+Ref fk_name {
+  posts.user_id - users.id
+}
