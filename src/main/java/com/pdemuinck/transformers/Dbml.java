@@ -1,26 +1,24 @@
 package com.pdemuinck.transformers;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 public class Dbml {
 
   public Project project;
   public List<Table> tables = new ArrayList<>();
   public List<Reference> references = new ArrayList<>();
-  public List<Constraint> constraints = new ArrayList<>();
+  public List<Index> indexes = new ArrayList<>();
 
   @Override
   public boolean equals(Object o) {
     if (o == null || getClass() != o.getClass()) return false;
     Dbml dbml = (Dbml) o;
-    return Objects.equals(project, dbml.project) && Objects.equals(tables, dbml.tables) && Objects.equals(references, dbml.references) && Objects.equals(constraints, dbml.constraints);
+    return Objects.equals(project, dbml.project) && Objects.equals(tables, dbml.tables) && Objects.equals(references, dbml.references) && Objects.equals(indexes, dbml.indexes);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(project, tables, references, constraints);
+    return Objects.hash(project, tables, references, indexes);
   }
 
   public static class Project {
@@ -55,6 +53,7 @@ public class Dbml {
     public String note;
     public String schema;
     public List<Column> columns = new ArrayList<>();
+    public Map<String, String> settings = new HashMap<>();
 
     public Table(){}
 
@@ -88,32 +87,38 @@ public class Dbml {
     public String name;
     public String type;
     public String note;
-    public String settings;
+    public String defaultValue;
+    public boolean isPrimaryKey;
+    public boolean isUnique;
+    public boolean isNotNull;
+    public boolean isAutoIncrement;
+    public List<String> enumValues = new ArrayList<>();
 
     public Column(){}
 
-    public Column(String name, String type, String note, String settings) {
+    public Column(String name, String type, String note) {
       this.name = name;
       this.type = type;
       this.note = note;
-      this.settings = settings;
     }
 
     @Override
     public String toString(){
-      return String.join(" ", name, type, settings);
+      return String.join(" ", name, type);
     }
-
     @Override
     public boolean equals(Object o) {
       if (o == null || getClass() != o.getClass()) return false;
       Column column = (Column) o;
-      return Objects.equals(name, column.name) && Objects.equals(type, column.type) && Objects.equals(note, column.note) && Objects.equals(settings, column.settings);
+      return Objects.equals(name, column.name) && Objects.equals(type, column.type) && Objects.equals(note, column.note)
+          && Objects.equals(defaultValue, column.defaultValue) && isPrimaryKey == column.isPrimaryKey
+          && isUnique == column.isUnique && isNotNull == column.isNotNull && isAutoIncrement == column.isAutoIncrement
+          && Objects.equals(enumValues, column.enumValues);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(name, type, note, settings);
+      return Objects.hash(name, type, note);
     }
   }
 
@@ -121,8 +126,13 @@ public class Dbml {
 
   }
 
-  public class Constraint {
+  public static class Index {
+    public boolean isUnique;
+    public String name;
+    public String table;
+    public List<String> columns = new ArrayList<>();
 
+    public Index(){}
   }
 
 }

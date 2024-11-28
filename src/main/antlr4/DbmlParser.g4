@@ -27,7 +27,7 @@ table_settings
               : LBRACKET table_setting_list RBRACKET;
 table_setting_list
               : table_setting (COMMA table_setting)*;
-table_setting : IDENTIFIER COLON (STRING_LITERAL | HEX_COLOR | IDENTIFIER)
+table_setting : IDENTIFIER COLON (STRING_LITERAL | NUMBER)
               | IDENTIFIER;
 
 column        : IDENTIFIER type column_settings? (COMMA | SEMICOLON)?

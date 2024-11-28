@@ -24,7 +24,7 @@ public class DbmlParser extends Parser {
 		LBRACE=16, RBRACE=17, LPAREN=18, RPAREN=19, LBRACKET=20, RBRACKET=21, 
 		COLON=22, COMMA=23, SEMICOLON=24, DOT=25, ASSIGN=26, RELATION_OP=27, BACKTICK=28, 
 		STRING_LITERAL=29, IDENTIFIER=30, NUMBER=31, WS=32, COMMENT=33, OPERATOR=34, 
-		HEX_COLOR=35, MULTI_LINE_STRING=36;
+		MULTI_LINE_STRING=35;
 	public static final int
 		RULE_dbml = 0, RULE_project = 1, RULE_project_settings = 2, RULE_table = 3, 
 		RULE_schema_table_name = 4, RULE_schema = 5, RULE_table_settings = 6, 
@@ -56,7 +56,7 @@ public class DbmlParser extends Parser {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'Table'", null, "'Enum'", "'indexes'", "'Project'", null, "'as'", 
+			null, "'Table'", null, null, "'indexes'", "'Project'", null, "'as'", 
 			"'default'", "'delete'", "'update'", "'primary key'", "'unique'", "'not null'", 
 			"'pk'", "'name'", "'{'", "'}'", "'('", "')'", "'['", "']'", "':'", "','", 
 			"';'", "'.'", "'='", null, "'`'"
@@ -69,7 +69,7 @@ public class DbmlParser extends Parser {
 			"DELETE", "UPDATE", "PRIMARY_KEY", "UNIQUE", "NOT_NULL", "PK", "NAME", 
 			"LBRACE", "RBRACE", "LPAREN", "RPAREN", "LBRACKET", "RBRACKET", "COLON", 
 			"COMMA", "SEMICOLON", "DOT", "ASSIGN", "RELATION_OP", "BACKTICK", "STRING_LITERAL", 
-			"IDENTIFIER", "NUMBER", "WS", "COMMENT", "OPERATOR", "HEX_COLOR", "MULTI_LINE_STRING"
+			"IDENTIFIER", "NUMBER", "WS", "COMMENT", "OPERATOR", "MULTI_LINE_STRING"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -741,13 +741,10 @@ public class DbmlParser extends Parser {
 	}
 
 	public static class Table_settingContext extends ParserRuleContext {
-		public List<TerminalNode> IDENTIFIER() { return getTokens(DbmlParser.IDENTIFIER); }
-		public TerminalNode IDENTIFIER(int i) {
-			return getToken(DbmlParser.IDENTIFIER, i);
-		}
+		public TerminalNode IDENTIFIER() { return getToken(DbmlParser.IDENTIFIER, 0); }
 		public TerminalNode COLON() { return getToken(DbmlParser.COLON, 0); }
 		public TerminalNode STRING_LITERAL() { return getToken(DbmlParser.STRING_LITERAL, 0); }
-		public TerminalNode HEX_COLOR() { return getToken(DbmlParser.HEX_COLOR, 0); }
+		public TerminalNode NUMBER() { return getToken(DbmlParser.NUMBER, 0); }
 		public Table_settingContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -784,7 +781,7 @@ public class DbmlParser extends Parser {
 				match(COLON);
 				setState(147);
 				_la = _input.LA(1);
-				if ( !((((_la) & ~0x3f) == 0 && ((1L << _la) & ((1L << STRING_LITERAL) | (1L << IDENTIFIER) | (1L << HEX_COLOR))) != 0)) ) {
+				if ( !(_la==STRING_LITERAL || _la==NUMBER) ) {
 				_errHandler.recoverInline(this);
 				}
 				else {
@@ -3001,7 +2998,7 @@ public class DbmlParser extends Parser {
 	}
 
 	public static final String _serializedATN =
-		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3&\u019c\4\2\t\2\4"+
+		"\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3%\u019c\4\2\t\2\4"+
 		"\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t"+
 		"\13\4\f\t\f\4\r\t\r\4\16\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22"+
 		"\4\23\t\23\4\24\t\24\4\25\t\25\4\26\t\26\4\27\t\27\4\30\t\30\4\31\t\31"+
@@ -3033,8 +3030,8 @@ public class DbmlParser extends Parser {
 		"\3$\5$\u0180\n$\3%\3%\3%\3%\7%\u0186\n%\f%\16%\u0189\13%\3%\3%\3&\3&\3"+
 		"&\3&\3&\5&\u0192\n&\3\'\3\'\3\'\7\'\u0197\n\'\f\'\16\'\u019a\13\'\3\'"+
 		"\2\2(\2\4\6\b\n\f\16\20\22\24\26\30\32\34\36 \"$&(*,.\60\62\64\668:<>"+
-		"@BDFHJL\2\6\4\2\37 %%\3\2\31\32\3\2 !\4\2\37\37&&\2\u01b6\2U\3\2\2\2\4"+
-		"X\3\2\2\2\6i\3\2\2\2\bk\3\2\2\2\n\u0080\3\2\2\2\f\u0084\3\2\2\2\16\u0087"+
+		"@BDFHJL\2\6\4\2\37\37!!\3\2\31\32\3\2 !\4\2\37\37%%\2\u01b6\2U\3\2\2\2"+
+		"\4X\3\2\2\2\6i\3\2\2\2\bk\3\2\2\2\n\u0080\3\2\2\2\f\u0084\3\2\2\2\16\u0087"+
 		"\3\2\2\2\20\u008b\3\2\2\2\22\u0097\3\2\2\2\24\u00a3\3\2\2\2\26\u00a5\3"+
 		"\2\2\2\30\u00ab\3\2\2\2\32\u00b1\3\2\2\2\34\u00d1\3\2\2\2\36\u00d3\3\2"+
 		"\2\2 \u00de\3\2\2\2\"\u00e0\3\2\2\2$\u00e8\3\2\2\2&\u00ea\3\2\2\2(\u00ee"+
