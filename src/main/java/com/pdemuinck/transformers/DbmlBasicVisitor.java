@@ -112,6 +112,9 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
   @Override
   public Dbml visitColumn_setting_list(DbmlParser.Column_setting_listContext ctx) {
     ctx.column_setting().forEach(this::visitColumn_setting);
+    if(ctx.reference() != null){
+      ctx.reference().forEach(r -> r.accept(this));
+    }
     return dbml;
   }
 
@@ -134,6 +137,8 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
         dbml.tables.get(tableIdx).columns.get(columnIdx).defaultValue = ctx.children.get(2).getText()
             .replaceFirst("`", "(").replace("`", ")");
       }
+    } else {
+      System.out.println("sldkjfsldkfj");
     }
     return dbml;
   }
@@ -269,35 +274,40 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
       return ctx.reference_short_form().accept(this);
     } else {
       // inline
-      List<TerminalNode> identifier = ctx.IDENTIFIER();
+      Dbml.Reference reference = new Dbml.Reference();
+      reference.table = dbml.tables.get(tableIdx).name;
+      reference.column = dbml.tables.get(tableIdx).columns.get(columnIdx).name;
+      reference.referencedTable = ctx.IDENTIFIER(0).getText();
+      reference.referencedColumn = ctx.IDENTIFIER(1).getText();
       String relation = ctx.RELATION_OP().getText();
-      if (identifier.size() == 3) {
-        if (">".equals(relation)) {
-          String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s`.`%s` (`%s`)",
-              ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
-        } else if ("<".equals(relation)) {
-          String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s`.`%s` (`%s`)",
-              ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
-        } else if ("-".equals(relation)) {
-          String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s`.`%s` (`%s`)",
-              ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText(), ctx.IDENTIFIER(2).getText());
-        }
+      if (">".equals(relation)) {
+        reference.type = "many-to-one";
+      } else if ("<".equals(relation)) {
+        reference.type = "one-to-many";
+      } else if ("-".equals(relation)) {
+        reference.type = "one-to-one";
       } else {
-        if (">".equals(relation)) {
-          String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
-              ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText());
-        } else if ("<".equals(relation)) {
-          String.format("ALTER TABLE `%s` ADD FOREIGN KEY (`%s`) REFERENCES <tableName> (`<column_name`)",
-              ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText());
-        } else if ("-".equals(relation)) {
-          String.format("ALTER TABLE <tableName> ADD FOREIGN KEY (`<column_name`) REFERENCES `%s` (`%s`)",
-              ctx.IDENTIFIER(0).getText(), ctx.IDENTIFIER(1).getText());
-        }
+        Dbml.Reference ref1 = new Dbml.Reference();
+        Dbml.Reference ref2 = new Dbml.Reference();
+        List<TerminalNode> identifier = ctx.IDENTIFIER();
+        ref1.table = dbml.tables.get(tableIdx).name + "_" + ctx.IDENTIFIER(0);
+        ref1.column = dbml.tables.get(tableIdx).name + "_" + dbml.tables.get(tableIdx).columns.get(columnIdx).name;
+        ref1.referencedTable = dbml.tables.get(tableIdx).name;
+        ref1.referencedColumn = dbml.tables.get(tableIdx).columns.get(columnIdx).name;
+        ref1.type = "many-to-many";
+        ref2.table = dbml.tables.get(tableIdx).name + "_" + ctx.IDENTIFIER(0);
+        ref2.column = ctx.IDENTIFIER(0).getText() + "_" + ctx.IDENTIFIER(1).getText();
+        ref2.referencedTable = ctx.IDENTIFIER(0).getText();
+        ref2.referencedColumn = ctx.IDENTIFIER(1).getText();
+        ref2.type = "many-to-many";
+        dbml.references.add(ref1);
+        dbml.references.add(ref2);
+        return dbml;
       }
-      return dbml;
+      dbml.references.add(reference);
     }
+    return dbml;
   }
-
 
   @Override
   public Dbml visitReference_short_form(DbmlParser.Reference_short_formContext ctx) {
@@ -311,10 +321,10 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
       reference.name = ctx.IDENTIFIER(0).getText();
       reference.type = "many-to-one";
     } else if ("<".equals(relation)) {
-      reference.table = ctx.IDENTIFIER(3).getText();
-      reference.column = dbml.tables.get(tableIdx).columns.get(columnIdx).name;
-      reference.referencedTable = ctx.IDENTIFIER(1).getText();
-      reference.referencedColumn = ctx.IDENTIFIER(2).getText();
+      reference.table = ctx.IDENTIFIER(1).getText();
+      reference.column = ctx.IDENTIFIER(2).getText();
+      reference.referencedTable = ctx.IDENTIFIER(3).getText();
+      reference.referencedColumn = ctx.IDENTIFIER(4).getText();
       reference.name = ctx.IDENTIFIER(0).getText();
       reference.type = "one-to-many";
     } else if ("-".equals(relation)) {
@@ -326,12 +336,74 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
       reference.name = ctx.IDENTIFIER(0).getText();
       reference.type = "one-to-one";
     } else if ("<>".equals(relation)) {
-      reference.table = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(3);
-      reference.column = dbml.tables.get(tableIdx).columns.get(columnIdx).name;
+      Dbml.Reference ref1 = new Dbml.Reference();
+      Dbml.Reference ref2 = new Dbml.Reference();
+      List<TerminalNode> identifier = ctx.IDENTIFIER();
+      ref1.table = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(3);
+      ref1.column = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(2).getText();
+      ref1.referencedTable = ctx.IDENTIFIER(1).getText();
+      ref1.referencedColumn = ctx.IDENTIFIER(2).getText();
+      ref1.name = ctx.IDENTIFIER(0).getText();
+      ref1.type = "many-to-many";
+      ref2.table = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(3);
+      ref2.column = ctx.IDENTIFIER(3).getText() + "_" + ctx.IDENTIFIER(4).getText();
+      ref2.referencedTable = ctx.IDENTIFIER(3).getText();
+      ref2.referencedColumn = ctx.IDENTIFIER(4).getText();
+      ref2.name = ctx.IDENTIFIER(0).getText();
+      ref2.type = "many-to-many";
+      dbml.references.add(ref1);
+      dbml.references.add(ref2);
+      return dbml;
+    }
+    dbml.references.add(reference);
+    return dbml;
+  }
+
+  @Override
+  public Dbml visitReference_long_form(DbmlParser.Reference_long_formContext ctx) {
+    Dbml.Reference reference = new Dbml.Reference();
+    String relation = ctx.RELATION_OP().getText();
+    if (">".equals(relation)) {
+      reference.table = ctx.IDENTIFIER(1).getText();
+      reference.column = ctx.IDENTIFIER(2).getText();
       reference.referencedTable = ctx.IDENTIFIER(3).getText();
       reference.referencedColumn = ctx.IDENTIFIER(4).getText();
       reference.name = ctx.IDENTIFIER(0).getText();
-      reference.type = "many-to-many";
+      reference.type = "many-to-one";
+    } else if ("<".equals(relation)) {
+      reference.table = ctx.IDENTIFIER(1).getText();
+      reference.column = ctx.IDENTIFIER(2).getText();
+      reference.referencedTable = ctx.IDENTIFIER(3).getText();
+      reference.referencedColumn = ctx.IDENTIFIER(4).getText();
+      reference.name = ctx.IDENTIFIER(0).getText();
+      reference.type = "one-to-many";
+    } else if ("-".equals(relation)) {
+      List<TerminalNode> identifier = ctx.IDENTIFIER();
+      reference.table = ctx.IDENTIFIER(1).getText();
+      reference.column = ctx.IDENTIFIER(2).getText();
+      reference.referencedTable = ctx.IDENTIFIER(3).getText();
+      reference.referencedColumn = ctx.IDENTIFIER(4).getText();
+      reference.name = ctx.IDENTIFIER(0).getText();
+      reference.type = "one-to-one";
+    } else if ("<>".equals(relation)) {
+      Dbml.Reference ref1 = new Dbml.Reference();
+      Dbml.Reference ref2 = new Dbml.Reference();
+      List<TerminalNode> identifier = ctx.IDENTIFIER();
+      ref1.table = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(3);
+      ref1.column = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(2).getText();
+      ref1.referencedTable = ctx.IDENTIFIER(1).getText();
+      ref1.referencedColumn = ctx.IDENTIFIER(2).getText();
+      ref1.name = ctx.IDENTIFIER(0).getText();
+      ref1.type = "many-to-many";
+      ref2.table = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(3);
+      ref2.column = ctx.IDENTIFIER(3).getText() + "_" + ctx.IDENTIFIER(4).getText();
+      ref2.referencedTable = ctx.IDENTIFIER(3).getText();
+      ref2.referencedColumn = ctx.IDENTIFIER(4).getText();
+      ref2.name = ctx.IDENTIFIER(0).getText();
+      ref2.type = "many-to-many";
+      dbml.references.add(ref1);
+      dbml.references.add(ref2);
+      return dbml;
     }
     dbml.references.add(reference);
     return dbml;

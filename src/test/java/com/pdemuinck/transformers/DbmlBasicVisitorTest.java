@@ -1,6 +1,8 @@
 package com.pdemuinck.transformers;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.util.List;
 
@@ -152,8 +154,33 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
     assertThat(out.indexes.get(7).columns).containsOnly("id*3", "id");
   }
 
+  @ParameterizedTest
+  @CsvSource({
+      "-, one-to-one",
+      "<, one-to-many",
+      ">, many-to-one"
+  })
+  public void relation_one_to_one_short_form(String symbol, String relation){
+    String input = String.format("""
+        Table posts {
+          id integer [primary key]
+          user_id integer
+        }
+        
+        Table users {
+          id integer
+        }
+        
+        Ref fk_name: posts.user_id %s users.id
+        """, symbol);
+
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
+
+    assertThat(out.references).containsExactly(new Dbml.Reference("fk_name", "posts", "user_id", "users", "id", relation));
+  }
+
   @Test
-  public void relation_one_to_one_short_form(){
+  public void many_to_many_relation_short_form() {
     String input = """
         Table posts {
           id integer [primary key]
@@ -164,11 +191,107 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
           id integer
         }
         
-        Ref fk_name: posts.user_id - users.id
+        Ref fk_name: posts.user_id <> users.id
         """;
 
     Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
 
-    assertThat(out.references).containsExactly(new Dbml.Reference("fk_name", "posts", "user_id", "users", "id", "one-to-one"));
+    assertThat(out.references).containsExactly(
+        new Dbml.Reference("fk_name", "posts_users", "posts_user_id", "posts", "user_id", "many-to-many"),
+        new Dbml.Reference("fk_name", "posts_users", "users_id", "users", "id", "many-to-many"));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "-, one-to-one",
+      "<, one-to-many",
+      ">, many-to-one"
+  })
+  public void relation_one_to_one_long_form(String symbol, String relation){
+    String input = String.format("""
+        Table posts {
+          id integer [primary key]
+          user_id integer
+        }
+        
+        Table users {
+          id integer
+        }
+        
+        Ref fk_name {
+          posts.user_id %s users.id
+        }
+        """, symbol);
+
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
+
+    assertThat(out.references).containsExactly(new Dbml.Reference("fk_name", "posts", "user_id", "users", "id", relation));
+  }
+
+  @Test
+  public void many_to_many_relation_long_form() {
+    String input = """
+        Table posts {
+          id integer [primary key]
+          user_id integer
+        }
+        
+        Table users {
+          id integer
+        }
+        
+        Ref fk_name {
+          posts.user_id <> users.id
+        }
+        """;
+
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
+
+    assertThat(out.references).containsExactly(
+        new Dbml.Reference("fk_name", "posts_users", "posts_user_id", "posts", "user_id", "many-to-many"),
+        new Dbml.Reference("fk_name", "posts_users", "users_id", "users", "id", "many-to-many"));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "-, one-to-one",
+      "<, one-to-many",
+      ">, many-to-one"
+  })
+  public void relation_one_to_one_inline(String symbol, String relation){
+    String input = String.format("""
+        Table posts {
+          id integer [primary key]
+          user_id integer [ref: %s users.id]
+        }
+        
+        Table users {
+          id integer
+        }
+        """, symbol);
+
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
+
+    assertThat(out.references).containsExactly(new Dbml.Reference(null, "posts", "user_id", "users", "id", relation));
+  }
+
+  @Test
+  public void many_to_many_relation_inline() {
+    String input = """
+        Table posts {
+          id integer [primary key]
+          user_id integer [ref: <> users.id]
+        }
+        
+        Table users {
+          id integer
+        }
+        """;
+
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
+
+    assertThat(out.references).containsExactly(
+        new Dbml.Reference(null, "posts_users", "posts_user_id", "posts", "user_id", "many-to-many"),
+        new Dbml.Reference(null, "posts_users", "users_id", "users", "id", "many-to-many"));
   }
 }
