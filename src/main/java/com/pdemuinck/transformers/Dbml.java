@@ -122,14 +122,44 @@ public class Dbml {
     }
   }
 
-  public class Reference {
+  public static class Reference {
+    public String name;
+    public String table;
+    public String column;
+    public String referencedTable;
+    public String referencedColumn;
+    public String type;
 
+    public Reference(String name, String table, String column, String referencedTable, String referencedColumn, String type) {
+      this.name = name;
+      this.table = table;
+      this.column = column;
+      this.referencedTable = referencedTable;
+      this.referencedColumn = referencedColumn;
+      this.type = type;
+    }
+
+    public Reference(){}
+
+    @Override
+    public boolean equals(Object o) {
+      if (o == null || getClass() != o.getClass()) return false;
+      Reference reference = (Reference) o;
+      return Objects.equals(name, reference.name) && Objects.equals(table, reference.table) && Objects.equals(column, reference.column) && Objects.equals(referencedTable, reference.referencedTable) && Objects.equals(referencedColumn, reference.referencedColumn) && Objects.equals(type, reference.type);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, table, column, referencedTable, referencedColumn, type);
+    }
   }
 
   public static class Index {
     public boolean isUnique;
+    public boolean isPrimaryKey;
     public String name;
     public String table;
+    public String type;
     public List<String> columns = new ArrayList<>();
 
     public Index(){}

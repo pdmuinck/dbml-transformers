@@ -111,4 +111,64 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
     // Then
     assertThat(out.tables.get(0).columns.get(1).enumValues).containsExactly("created", "running", "done", "failure");
   }
+
+  @Test
+  public void parses_indexes(){
+    // Given
+    String input = """
+        Table bookings {
+          id integer
+          country varchar
+          booking_date date
+          created_at timestamp
+        
+          indexes {
+            (id, country) [pk]
+            created_at [name: 'created_at_index', note: 'Date']
+            booking_date
+            (country, booking_date) [unique]
+            booking_date [type: hash]
+            (`id*2`)
+            (`id*3`,`getdate()`)
+            (`id*3`,id)
+          }
+        }
+        """;
+
+    // When
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
+
+    // Then
+    assertThat(out.indexes.get(0).isPrimaryKey).isTrue();
+    assertThat(out.indexes.get(0).columns).containsOnly("id", "country");
+    assertThat(out.indexes.get(1).name).isEqualTo("'created_at_index'");
+    assertThat(out.indexes.get(1).columns).containsOnly("created_at");
+    assertThat(out.indexes.get(2).columns).containsOnly("booking_date");
+    assertThat(out.indexes.get(3).columns).containsOnly("country", "booking_date");
+    assertThat(out.indexes.get(4).columns).containsOnly("booking_date");
+    assertThat(out.indexes.get(4).type).isEqualTo("hash");
+    assertThat(out.indexes.get(5).columns).containsOnly("id*2");
+    assertThat(out.indexes.get(6).columns).containsOnly("id*3", "getdate()");
+    assertThat(out.indexes.get(7).columns).containsOnly("id*3", "id");
+  }
+
+  @Test
+  public void relation_one_to_one_short_form(){
+    String input = """
+        Table posts {
+          id integer [primary key]
+          user_id integer
+        }
+        
+        Table users {
+          id integer
+        }
+        
+        Ref fk_name: posts.user_id - users.id
+        """;
+
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser(input).dbml());
+
+    assertThat(out.references).containsExactly(new Dbml.Reference("fk_name", "posts", "user_id", "users", "id", "one-to-one"));
+  }
 }
