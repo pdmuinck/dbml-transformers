@@ -96,10 +96,12 @@ public class Dbml {
 
     public Column(){}
 
-    public Column(String name, String type, String note) {
+    public Column(String name, String type, String note, boolean isPrimaryKey, String defaultValue) {
       this.name = name;
       this.type = type;
       this.note = note;
+      this.isPrimaryKey = isPrimaryKey;
+      this.defaultValue = defaultValue;
     }
 
     @Override
@@ -161,6 +163,15 @@ public class Dbml {
     public String table;
     public String type;
     public List<String> columns = new ArrayList<>();
+
+    public Index(boolean isUnique, boolean isPrimaryKey, String name, String table, String type, List<String> columns) {
+      this.isUnique = isUnique;
+      this.isPrimaryKey = isPrimaryKey;
+      this.name = name;
+      this.table = table;
+      this.type = type;
+      this.columns = columns;
+    }
 
     public Index(){}
   }

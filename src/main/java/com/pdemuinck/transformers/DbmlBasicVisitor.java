@@ -5,18 +5,16 @@ import com.pdemuinck.transformers.antlr.DbmlParserBaseVisitor;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
 
-  private Dbml dbml = new Dbml();
+  private final Dbml dbml = new Dbml();
   private int tableIdx = 0;
   private int columnIdx = 0;
   private int indexIdx = 0;
-  private Map<String, List<String>> enums = new HashMap<>();
+  private final Map<String, List<String>> enums = new HashMap<>();
 
   @Override
   public Dbml visitProject(DbmlParser.ProjectContext ctx) {
@@ -47,7 +45,7 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
     if (ctx.enumeration() != null && !ctx.enumeration().isEmpty()) {
       ctx.enumeration().forEach(e -> e.accept(this));
     }
-    ctx.table().stream().forEach(this::visitTable);
+    ctx.table().forEach(this::visitTable);
 
     if (ctx.reference() != null && !ctx.reference().isEmpty()) {
       ctx.reference().forEach(this::visitReference);
@@ -59,8 +57,8 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
   public Dbml visitTable(DbmlParser.TableContext ctx) {
     columnIdx = 0;
     Dbml.Table table = new Dbml.Table();
-    table.name = ctx.schema_table_name().getText();
     dbml.tables.add(table);
+    ctx.schema_table_name().accept(this);
     ctx.column().forEach(c -> c.accept(this));
     if (ctx.note() != null && !ctx.note().isEmpty()) {
       ctx.note().forEach(this::visitNote);
@@ -76,9 +74,19 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
   }
 
   @Override
+  public Dbml visitSchema_table_name(DbmlParser.Schema_table_nameContext ctx) {
+    dbml.tables.get(tableIdx).name = ctx.IDENTIFIER().getText();
+    if (ctx.schema() != null) {
+      dbml.tables.get(tableIdx).name = ctx.schema().IDENTIFIER().getText() + "." + ctx.IDENTIFIER().getText();
+      dbml.tables.get(tableIdx).schema = ctx.schema().IDENTIFIER().getText();
+    }
+    return dbml;
+  }
+
+  @Override
   public Dbml visitColumn(DbmlParser.ColumnContext ctx) {
     Dbml.Column column = new Dbml.Column();
-    column.name = ctx.IDENTIFIER().get(0).getText();
+    column.name = ctx.IDENTIFIER().getFirst().getText();
     dbml.tables.get(tableIdx).columns.add(column);
     ctx.type().accept(this);
     if (ctx.column_settings() != null) {
@@ -112,7 +120,7 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
   @Override
   public Dbml visitColumn_setting_list(DbmlParser.Column_setting_listContext ctx) {
     ctx.column_setting().forEach(this::visitColumn_setting);
-    if(ctx.reference() != null){
+    if (ctx.reference() != null) {
       ctx.reference().forEach(r -> r.accept(this));
     }
     return dbml;
@@ -255,14 +263,20 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
   public Dbml visitIndex_setting(DbmlParser.Index_settingContext ctx) {
     if (ctx.PK() != null) {
       dbml.indexes.get(indexIdx).isPrimaryKey = true;
+      List<String> columns = dbml.indexes.get(indexIdx).columns;
+      columns.forEach(c -> {
+        for (Dbml.Column column : dbml.tables.get(tableIdx).columns) {
+          if (column.name.equals(c)) {
+            column.isPrimaryKey = true;
+          }
+        }
+      });
     } else if (ctx.NAME() != null) {
       dbml.indexes.get(indexIdx).name = ctx.STRING_LITERAL().getText();
     } else if (ctx.UNIQUE() != null) {
       dbml.indexes.get(indexIdx).isUnique = true;
-    } else if (ctx.note() != null) {
     } else if (ctx.getText().contains("type")) {
       dbml.indexes.get(indexIdx).type = ctx.IDENTIFIER(1).getText();
-    } else {
     }
     return dbml;
   }
@@ -289,7 +303,6 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
       } else {
         Dbml.Reference ref1 = new Dbml.Reference();
         Dbml.Reference ref2 = new Dbml.Reference();
-        List<TerminalNode> identifier = ctx.IDENTIFIER();
         ref1.table = dbml.tables.get(tableIdx).name + "_" + ctx.IDENTIFIER(0);
         ref1.column = dbml.tables.get(tableIdx).name + "_" + dbml.tables.get(tableIdx).columns.get(columnIdx).name;
         ref1.referencedTable = dbml.tables.get(tableIdx).name;
@@ -328,7 +341,6 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
       reference.name = ctx.IDENTIFIER(0).getText();
       reference.type = "one-to-many";
     } else if ("-".equals(relation)) {
-      List<TerminalNode> identifier = ctx.IDENTIFIER();
       reference.table = ctx.IDENTIFIER(1).getText();
       reference.column = ctx.IDENTIFIER(2).getText();
       reference.referencedTable = ctx.IDENTIFIER(3).getText();
@@ -338,7 +350,6 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
     } else if ("<>".equals(relation)) {
       Dbml.Reference ref1 = new Dbml.Reference();
       Dbml.Reference ref2 = new Dbml.Reference();
-      List<TerminalNode> identifier = ctx.IDENTIFIER();
       ref1.table = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(3);
       ref1.column = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(2).getText();
       ref1.referencedTable = ctx.IDENTIFIER(1).getText();
@@ -378,7 +389,6 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
       reference.name = ctx.IDENTIFIER(0).getText();
       reference.type = "one-to-many";
     } else if ("-".equals(relation)) {
-      List<TerminalNode> identifier = ctx.IDENTIFIER();
       reference.table = ctx.IDENTIFIER(1).getText();
       reference.column = ctx.IDENTIFIER(2).getText();
       reference.referencedTable = ctx.IDENTIFIER(3).getText();
@@ -388,7 +398,6 @@ public class DbmlBasicVisitor extends DbmlParserBaseVisitor<Dbml> {
     } else if ("<>".equals(relation)) {
       Dbml.Reference ref1 = new Dbml.Reference();
       Dbml.Reference ref2 = new Dbml.Reference();
-      List<TerminalNode> identifier = ctx.IDENTIFIER();
       ref1.table = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(3);
       ref1.column = ctx.IDENTIFIER(1).getText() + "_" + ctx.IDENTIFIER(2).getText();
       ref1.referencedTable = ctx.IDENTIFIER(1).getText();

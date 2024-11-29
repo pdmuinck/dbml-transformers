@@ -1,5 +1,9 @@
 package com.pdemuinck.transformers;
 
+import net.jqwik.api.Arbitrary;
+import net.jqwik.api.ForAll;
+import net.jqwik.api.Property;
+import net.jqwik.api.Provide;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -8,8 +12,11 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DbmlBasicVisitorTest extends BaseDbmlTest {
+
+
 
   @Test
   public void parses_project() {
@@ -22,13 +29,26 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
     assertThat(out).isEqualTo(expected);
   }
 
+
   @Test
   public void parses_table() {
     // When
     Dbml out = new DbmlBasicVisitor().visitDbml(parser("Table users { id integer }").dbml());
     Dbml expected = new Dbml();
     expected.tables = List.of(new Dbml.Table("users", null, null, null,
-        List.of(new Dbml.Column("id", "integer", null))));
+        List.of(new Dbml.Column("id", "integer", null, false, null))));
+
+    // Then
+    assertThat(out).isEqualTo(expected);
+  }
+
+  @Test
+  public void parses_table_with_schema() {
+    // When
+    Dbml out = new DbmlBasicVisitor().visitDbml(parser("Table schema.users { id integer }").dbml());
+    Dbml expected = new Dbml();
+    expected.tables = List.of(new Dbml.Table("schema.users", null, null, "schema",
+        List.of(new Dbml.Column("id", "integer", null, false, null))));
 
     // Then
     assertThat(out).isEqualTo(expected);
@@ -115,7 +135,7 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
   }
 
   @Test
-  public void parses_indexes(){
+  public void parses_indexes() {
     // Given
     String input = """
         Table bookings {
@@ -142,6 +162,7 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
 
     // Then
     assertThat(out.indexes.get(0).isPrimaryKey).isTrue();
+    assertThat(out.tables.get(0).columns.get(0).isPrimaryKey).isTrue();
     assertThat(out.indexes.get(0).columns).containsOnly("id", "country");
     assertThat(out.indexes.get(1).name).isEqualTo("'created_at_index'");
     assertThat(out.indexes.get(1).columns).containsOnly("created_at");
@@ -160,7 +181,7 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
       "<, one-to-many",
       ">, many-to-one"
   })
-  public void relation_one_to_one_short_form(String symbol, String relation){
+  public void relation_one_to_one_short_form(String symbol, String relation) {
     String input = String.format("""
         Table posts {
           id integer [primary key]
@@ -207,7 +228,7 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
       "<, one-to-many",
       ">, many-to-one"
   })
-  public void relation_one_to_one_long_form(String symbol, String relation){
+  public void relation_one_to_one_long_form(String symbol, String relation) {
     String input = String.format("""
         Table posts {
           id integer [primary key]
@@ -258,7 +279,7 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
       "<, one-to-many",
       ">, many-to-one"
   })
-  public void relation_one_to_one_inline(String symbol, String relation){
+  public void relation_one_to_one_inline(String symbol, String relation) {
     String input = String.format("""
         Table posts {
           id integer [primary key]
@@ -294,4 +315,19 @@ class DbmlBasicVisitorTest extends BaseDbmlTest {
         new Dbml.Reference(null, "posts_users", "posts_user_id", "posts", "user_id", "many-to-many"),
         new Dbml.Reference(null, "posts_users", "users_id", "users", "id", "many-to-many"));
   }
+
+  @Test
+  public void yells_at_column_without_type() {
+    String input = """
+        Table posts {
+          id
+        }
+        """;
+
+    assertThrows(RuntimeException.class, () -> new DbmlBasicVisitor().visitDbml(parser(input).dbml()));
+  }
+
+
+
+
 }
